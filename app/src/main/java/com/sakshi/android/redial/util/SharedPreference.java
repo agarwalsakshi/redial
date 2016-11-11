@@ -13,12 +13,9 @@ public class SharedPreference {
     }
 
     public int fetchRemainingCallNumber(Context context){
-        return context.getSharedPreferences("REMAINING_CALL", Context.MODE_PRIVATE).getInt("NUMBER", -1);
+        return context.getSharedPreferences("REMAINING_CALL", Context.MODE_PRIVATE).getInt("NUMBER", 0);
     }
 
-    public void removeRemainingCallNumber(Context context){
-        context.getSharedPreferences("REMAINING_CALL", Context.MODE_PRIVATE).getInt("NUMBER", -1);
-    }
 
     public void saveContactNumber(Context context, String contact_number){
         context.getSharedPreferences("CONTACT_NUMBER", Context.MODE_PRIVATE).edit().putString("CONTACT", contact_number).apply();
