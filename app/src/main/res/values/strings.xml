@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Redial</string>
+    <string name="contact_name_text">Enter contact number:</string>
+</resources>
