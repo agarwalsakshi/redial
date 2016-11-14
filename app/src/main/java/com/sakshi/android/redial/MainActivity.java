@@ -8,13 +8,13 @@ import android.database.Cursor;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.CallLog;
 import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static String TAG = "MainActiviy";
@@ -36,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private int remainingCall;
     private Button callCut;
     private static final int MY_PERMISSIONS_REQUEST_CALL_NUMBER = 1;
+    private int gapBetweenCalls;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,26 +45,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
         ((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE))
-                .listen(new StatePhoneReceiver(this), PhoneStateListener.LISTEN_CALL_STATE);
+            .listen(new StatePhoneReceiver(), PhoneStateListener.LISTEN_CALL_STATE);
         selectUser = (EditText) findViewById(R.id.select_user);
 
         (findViewById(R.id.contact_icon)).setOnClickListener(this);
         (findViewById(R.id.call_user)).setOnClickListener(this);
         callCut = (Button) findViewById(R.id.call_cut);
         callCut.setOnClickListener(this);
-        setUpSpinner();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
+        setUpCallSpinner();
+        setUpGapSpinner();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         // TODO Auto-generated method stub
         super.onActivityResult(requestCode, resultCode, data);
-
         if (requestCode == 1) {
             if (resultCode == RESULT_OK) {
                 Uri contactData = data.getData();
@@ -91,17 +88,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private void setUpSpinner() {
+    private boolean lastCallTime() {
+        Cursor managedCursor = this.getContentResolver().query(CallLog.Calls.CONTENT_URI, null, null, null, null);
+        managedCursor.moveToLast();
+        String callDuration = managedCursor.getString(managedCursor.getColumnIndex(CallLog.Calls.DURATION));
+        managedCursor.close();
+        int CALL_RINGING_TIME = 75;
+        return Integer.parseInt(callDuration) < CALL_RINGING_TIME;
+    }
+
+    private void setUpCallSpinner() {
         ArrayList<Integer> spinnerItems = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            spinnerItems.add(i + 1);
+        for (int i = 1; i <= 10; i++) {
+            spinnerItems.add(i);
+        }
+        for (int i = 15; i <30 ; i+=5) {
+            spinnerItems.add(i);
         }
         final Spinner sp = (Spinner) findViewById(R.id.calls_number_spinner);
         ArrayAdapter<Integer> adp = new ArrayAdapter<Integer>(this, android.R.layout.simple_list_item_1, spinnerItems);
         adp.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         sp.setAdapter(adp);
         sp.setSelected(true);
-        sp.setSelection(9);
+        sp.setSelection(0);
 
         sp.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
 
@@ -109,6 +118,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onItemSelected(AdapterView<?> arg0,
                                        View arg1, int pos, long arg3) {
                 remainingCall = Integer.valueOf(sp.getSelectedItem().toString());
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> arg0) {
+                // TODO Auto-generated method stub
+            }
+        });
+    }
+
+    private void setUpGapSpinner() {
+        ArrayList<Integer> spinnerItems = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            spinnerItems.add(i);
+        }
+        for (int i = 10; i <= 20; i+=5) {
+            spinnerItems.add(i);
+        }
+        final Spinner sp = (Spinner) findViewById(R.id.gap_number_spinner);
+        ArrayAdapter<Integer> adp = new ArrayAdapter<Integer>(this, android.R.layout.simple_list_item_1, spinnerItems);
+        adp.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        sp.setAdapter(adp);
+        sp.setSelected(true);
+        sp.setSelection(0);
+
+        sp.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+
+            @Override
+            public void onItemSelected(AdapterView<?> arg0,
+                                       View arg1, int pos, long arg3) {
+                gapBetweenCalls = Integer.valueOf(sp.getSelectedItem().toString());
             }
 
             @Override
@@ -160,11 +199,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     class StatePhoneReceiver extends PhoneStateListener {
-        Context context;
-
-        StatePhoneReceiver(Context context) {
-            this.context = context;
-        }
 
         @Override
         public void onCallStateChanged(int state, String incomingNumber) {
@@ -172,36 +206,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             switch (state) {
                 case TelephonyManager.CALL_STATE_OFFHOOK:
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                     putCallOnLoudspeaker();
                     break;
 
                 case TelephonyManager.CALL_STATE_IDLE:
+                    checkForCall();
                     callCut.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            Log.d(TAG, "onClick: ");
                             clearDataOnCallCut();
                         }
                     });
-                    checkForCall();
             }
         }
 
-        private void checkForCall()
-        {
+        private void checkForCall() {
             Timer time = new Timer();
             time.schedule(new TimerTask() {
                 @Override
                 public void run() {
                     runOnUiThread(new Runnable() {
-                        @Override public void run() {
-                            if (new SharedPreference().fetchRemainingCallNumber(MainActivity.this) > 0) {
-                                Log.d(TAG, "onCallStateChanged: ");
+                        @Override
+                        public void run() {
+                            if (new SharedPreference().fetchRemainingCallNumber(MainActivity.this) > 0 && lastCallTime()) {
                                 callNumber();
                             } else {
                                 clearDataOnCallCut();
@@ -209,7 +236,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
                     });
                 }
-            }, 3000);
+            }, gapBetweenCalls*1000);
 
         }
 

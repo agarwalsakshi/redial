@@ -42,10 +42,11 @@
         android:layout_alignBottom="@id/select_user"/>
 
     <TextView
-        android:id="@+id/spinner_text"
+        android:id="@+id/call_spinner_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/select_user"
+        android:layout_marginTop="10dp"
         android:textSize="17sp"
         android:text="Number of calls:" />
 
@@ -55,7 +56,25 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/select_user"
         android:layout_margin="10dp"
-        android:layout_alignBaseline="@id/spinner_text"
+        android:layout_alignBaseline="@id/call_spinner_text"
+        android:layout_alignParentRight="true"/>
+
+    <TextView
+        android:id="@+id/gap_spinner_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/call_spinner_text"
+        android:textSize="17sp"
+        android:layout_marginTop="20dp"
+        android:text="Seconds Gap between calls:" />
+
+    <Spinner
+        android:id="@+id/gap_number_spinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/select_user"
+        android:layout_margin="10dp"
+        android:layout_alignBaseline="@id/gap_spinner_text"
         android:layout_alignParentRight="true"/>
 
 
